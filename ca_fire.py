@@ -111,7 +111,7 @@ def grid_bernoulli_trial(probability):
 
 
 def evolve_forest(grid_shape, n_time_step,  prob_growth,
-                  prob_new_fire, initial=None):
+                  prob_new_fire, initial=None, verbose=True):
     """
 
     Create and evolve a forest fire grid, then save the final state
@@ -146,7 +146,14 @@ def evolve_forest(grid_shape, n_time_step,  prob_growth,
     # define the growth and iginition functions
     random_grow = grid_bernoulli_trial(prob_growth)
     random_ignite = grid_bernoulli_trial(prob_new_fire)
-
+    
+    if verbose:
+        print('---')
+        print(f'evolving forest for {n_time_step} time steps')
+        print(f'growth probability = {prob_growth:4.0e}')
+        print(f'new fire probability = {prob_new_fire:4.0e}')
+        print('---')
+    
     # time loop
     for step in range(0, n_time_step):
         # apply CA rules to forest_grid
@@ -154,7 +161,11 @@ def evolve_forest(grid_shape, n_time_step,  prob_growth,
         # calculate & store fire and tree areas
         area_fire[step] = np.sum(np.where(forest_grid[:,:] == FIRE, 1, 0))
         area_trees[step] = np.sum(np.where(forest_grid[:,:] == TREES, 1, 0))
-
+        #log state every 1000 steps
+        if verbose and (step + 1) % 1000 == 0:
+            print(f'time step {step} : tree area = {area_trees[step]}')
+    if verbose:
+        print('---')
     # output final state
     return forest_grid, area_trees, area_fire
 
