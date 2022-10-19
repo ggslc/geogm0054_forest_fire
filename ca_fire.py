@@ -16,8 +16,9 @@ GEOGM0054 Introduction to Scientific Computing
 """
 
 import numpy as np
-from ca_grid import CAGrid
 from xarray import Dataset, open_dataset
+from ca_grid import CAGrid
+
 # %%
 # constant definitions
 EMPTY, TREES, FIRE = 0, 1, 2
@@ -96,7 +97,7 @@ def grid_bernoulli_trial(probability):
 
     Returns
     -------
-    bernoulli_trial_function: function(grid). 
+    bernoulli_trial_function: function(grid).
         Returns an ndarray(type = bool) of outcomes
         with the same shape as grid
 
@@ -111,7 +112,7 @@ def grid_bernoulli_trial(probability):
 
 
 def evolve_forest(grid_shape, n_time_step,  prob_growth,
-                  prob_new_fire, initial=None, verbose=True):
+                  prob_new_fire, verbose=True):
     """
 
     Create and evolve a forest fire grid, then save the final state
@@ -135,25 +136,21 @@ def evolve_forest(grid_shape, n_time_step,  prob_growth,
 
     # allocate storage
     forest_grid = CAGrid(grid_shape)
-    
-    if not (initial is None):
-        forest_grid[:,:] = initial[:,:]    
-        
-    
+
     area_fire = np.zeros(n_time_step, dtype='int')
     area_trees = np.zeros(n_time_step, dtype='int')
 
     # define the growth and iginition functions
     random_grow = grid_bernoulli_trial(prob_growth)
     random_ignite = grid_bernoulli_trial(prob_new_fire)
-    
+
     if verbose:
         print('---')
         print(f'evolving forest for {n_time_step} time steps')
         print(f'growth probability = {prob_growth:4.0e}')
         print(f'new fire probability = {prob_new_fire:4.0e}')
         print('---')
-    
+
     # time loop
     for step in range(0, n_time_step):
         # apply CA rules to forest_grid
@@ -177,15 +174,14 @@ def write_netcdf(file_name, grid,  area_trees, area_fire):
              "area_fire": (("time"), area_fire[:]),
              "area_trees": (("time"), area_trees[:])}
             ).to_netcdf(file_name)
-    
+
 def read_netcdf(file_name):
-    
+
     with open_dataset(file_name) as dset:
         dset.load()
         grid = CAGrid(dset.grid.shape)
         grid[:,:] = dset.grid[:,:]
         area_trees = dset.area_trees.to_numpy()
         area_fire = dset.area_fire.to_numpy()
-        
+
     return grid, area_trees, area_fire
-    
