@@ -17,11 +17,51 @@ GEOGM0054 Introduction to Scientific Computing
 
 import numpy as np
 from xarray import Dataset, open_dataset
-from ca_grid import CAGrid
 
 # %%
 # constant definitions
 EMPTY, TREES, FIRE = 0, 1, 2
+
+# %%
+def _stencil_slices(grid_shape, stencil_n=9):
+    """
+    Provide slice vectors (slice_0, slice_1) that represent
+    the meembers of a stencil.
+
+    The 5-point stencil comprises the interior cells and their
+    west, east, south, north neigbours
+
+    The 9-point stencil adds southe-west etc
+
+    Parameters
+    ----------
+    grid_shape : (int, int) : grid dimensions
+    stencil : int, optional
+        choice of stencil (5 or 9 pt). The default is 9.
+
+    Returns
+    -------
+    cell: slice indexing all cells in the interior
+    neighbours: tuple of slices indexing cells adjacent to cell
+    """
+
+    # obtain grid parameters
+    n_i, n_j = grid_shape
+
+    # slice tuples for interior cells
+    cell = slice(1, n_i-1), slice(1, n_j-1)
+
+    # slice tuples for neighbours
+    offset = ((0, 1), (0, -1), (1, 0), (-1, 0))
+    if stencil_n == 9:
+        offset += ((1, 1), (-1, 1), (1, -1), (-1, -1))
+    neighbours = tuple((slice(1 + o[0], n_i + o[0] - 1),
+                         slice(1 + o[1], n_j + o[1] - 1))
+                        for o in offset)
+
+    return cell, neighbours
+
+
 
 
 # %%
@@ -40,8 +80,8 @@ def update_forest(grid, grow, ignite):
 
     Parameters
     ----------
-    grid : CAGrid .
-        current state of the forest
+    grid : ndarray, dtype='int' .
+        current state of the forest.
 
     grow : function(grid[:,:]).
         Determines cells with new trees. Should return ndarry(dtype='bool')
@@ -57,7 +97,7 @@ def update_forest(grid, grow, ignite):
 
     """
 
-    cell, neighbours = grid.interior, grid.interior_neighbours
+    cell, neighbours = _stencil_slices(grid.shape)
 
     # allocate new grid and remove burning trees
     next_state = np.where(grid[cell] == FIRE, EMPTY, grid[cell])
@@ -135,8 +175,7 @@ def evolve_forest(grid_shape, n_time_step,  prob_growth,
     """
 
     # allocate storage
-    forest_grid = CAGrid(grid_shape)
-
+    forest_grid = np.zeros(grid_shape, dtype='int')
     area_fire = np.zeros(n_time_step, dtype='int')
     area_trees = np.zeros(n_time_step, dtype='int')
 
@@ -179,8 +218,7 @@ def read_netcdf(file_name):
 
     with open_dataset(file_name) as dset:
         dset.load()
-        grid = CAGrid(dset.grid.shape)
-        grid[:,:] = dset.grid[:,:]
+        grid = dset.grid.to_numpy()
         area_trees = dset.area_trees.to_numpy()
         area_fire = dset.area_fire.to_numpy()
 
