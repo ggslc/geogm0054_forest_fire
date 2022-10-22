@@ -62,10 +62,29 @@ def _stencil_slices(grid_shape, stencil_n=9):
     return cell, neighbours
 
 
+def grid_bernoulli_trial(grid, probability):
+    """
 
+    Returns the outcome of Bernoulli trials on a grid.
+
+    Parameters
+    ----------
+    probability : float
+        probability of sucess in each trial
+
+    Returns
+    -------
+     ndarray(type = bool) of outcomes
+        with the same shape as grid
+
+    """
+    rng = np.random.default_rng()
+    return rng.uniform(size=grid.shape) < probability
 
 # %%
-def update_forest(grid, grow, ignite):
+
+# %%
+def update_forest(grid, prob_grow, prob_ignite):
     """
 
     Update a forest grid according to the CA rules
@@ -73,8 +92,8 @@ def update_forest(grid, grow, ignite):
     Interior cells:
         1. fire cells -> empty cells
         2. trees cells adjacent to fire cells -> fire cells
-        3. empty cell [i,j] -> tree cell if grow(forest_grid)[i,j]
-        4. tree cell [i,j] -> fire cell if ignite(forest_grid)[i,j]
+        3. empty cell -> tree cell with probability prob_grow
+        4. tree cell -> fire cell with probability prob_ignite
     Boundary cells:
         1. no changes
 
@@ -83,17 +102,13 @@ def update_forest(grid, grow, ignite):
     grid : ndarray, dtype='int' .
         current state of the forest.
 
-    grow : function(grid[:,:]).
-        Determines cells with new trees. Should return ndarry(dtype='bool')
-        with the same shape as grid[:,:] and dtype='bool'
+    prob_grow : float, probability of new growth per cell per unit time
 
-    ignite: function(grid[:,:]).
-        Determines cells with new fire. Should return a grid
-        with the same shape as grid[:,:], and dtype='bool'
+    prob_ignite : float, probability of new fire per cell per unit time
 
     Returns
     -------
-    grid: the updated CAGrid
+    grid: ndarray. the updated state.
 
     """
 
@@ -110,12 +125,12 @@ def update_forest(grid, grow, ignite):
 
     # new growth
     next_state = np.where(
-        (grid[cell] == EMPTY) & grow(grid)[cell],
+        (grid[cell] == EMPTY) & grid_bernoulli_trial(grid, prob_grow)[cell],
         TREES, next_state)
 
     # ignition
     next_state = np.where(
-        (grid[cell] == TREES) & ignite(grid)[cell],
+        (grid[cell] == TREES) & grid_bernoulli_trial(grid, prob_ignite)[cell],
         FIRE, next_state)
 
     grid[cell] = next_state
@@ -125,34 +140,11 @@ def update_forest(grid, grow, ignite):
 # %%
 
 
-def grid_bernoulli_trial(probability):
-    """
-
-    Returns a *function* which returns the outcome of Bernoulli trials on a grid.
-
-    Parameters
-    ----------
-    probability : float
-        probability of sucess in each trial
-
-    Returns
-    -------
-    bernoulli_trial_function: function(grid).
-        Returns an ndarray(type = bool) of outcomes
-        with the same shape as grid
-
-    """
-    rng = np.random.default_rng()
-
-    def bernoulli_trial_function(grid):
-        return rng.uniform(size=grid.shape) < probability
-
-    return bernoulli_trial_function
-# %%
 
 
-def evolve_forest(grid_shape, n_time_step,  prob_growth,
-                  prob_new_fire, verbose=True):
+
+def evolve_forest(grid_shape, n_time_step,  prob_grow,
+                  prob_ignite, verbose=True):
     """
 
     Create and evolve a forest fire grid, then save the final state
@@ -164,13 +156,22 @@ def evolve_forest(grid_shape, n_time_step,  prob_growth,
 
     n_time_step : int, number of time steps
 
-    prob_growth : float, probability of new growth per cell per unit time
+    prob_grow : float, probability of new growth per cell per unit time
 
-    prob_new_fire : float, probability of new fire per cell per unit time
+    prob_ignite : float, probability of new fire per cell per unit time
+
+    verbose: bool, log progress to print()? default True.
 
     Returns
     -------
-    None.
+
+    forest_grid: ndarray, dtype='int', ndim =2 final state of the forest
+
+    area_trees: ndarray, dtype='int', ndim = 1, count of tree cells
+                ot each time step
+
+    area_fire: ndarray, dtype='int', ndim = 1, count of fire cells at
+                each time step
 
     """
 
@@ -179,29 +180,30 @@ def evolve_forest(grid_shape, n_time_step,  prob_growth,
     area_fire = np.zeros(n_time_step, dtype='int')
     area_trees = np.zeros(n_time_step, dtype='int')
 
-    # define the growth and iginition functions
-    random_grow = grid_bernoulli_trial(prob_growth)
-    random_ignite = grid_bernoulli_trial(prob_new_fire)
 
     if verbose:
         print('---')
         print(f'evolving forest for {n_time_step} time steps')
-        print(f'growth probability = {prob_growth:4.0e}')
-        print(f'new fire probability = {prob_new_fire:4.0e}')
+        print(f'growth probability = {prob_grow:4.0e}')
+        print(f'ignition probability = {prob_ignite:4.0e}')
         print('---')
 
     # time loop
     for step in range(0, n_time_step):
         # apply CA rules to forest_grid
-        forest_grid = update_forest(forest_grid, random_grow, random_ignite)
+        forest_grid = update_forest(forest_grid, prob_grow, prob_ignite)
+
         # calculate & store fire and tree areas
         area_fire[step] = np.sum(np.where(forest_grid[:,:] == FIRE, 1, 0))
         area_trees[step] = np.sum(np.where(forest_grid[:,:] == TREES, 1, 0))
+
         #log state every 1000 steps
         if verbose and (step + 1) % 1000 == 0:
             print(f'time step {step} : tree area = {area_trees[step]}')
+
     if verbose:
         print('---')
+
     # output final state
     return forest_grid, area_trees, area_fire
 

@@ -8,24 +8,7 @@ Created Oct 5 2022
 
 import unittest
 import numpy as np
-from ca_grid import CAGrid
 import ca_fire
-
-
-def _grid_false(grd):
-    """
-    Test growth/ignition function, False everywhere
-    
-    Parameters
-    ----------
-    grd : any type with a shape attribute
-
-    Returns
-    -------
-    ndarray : grid of False bools
-
-    """
-    return np.full(grd.shape, False)
 
 
 class TestCAFire(unittest.TestCase):
@@ -42,19 +25,25 @@ class TestCAFire(unittest.TestCase):
         checks for the expected result (a ring of fire :)
         """
         # TODO extend test to edges and corners
-        n_i, n_j = 5, 5
-        grid = CAGrid((n_i, n_j))
-        expect = CAGrid((n_i, n_j))
 
-        # single interior fire, far from edge
-        grid[grid.interior] = ca_fire.TREES
+        # define 5 x 5 grid (smallest grid for ring of fire)
+        n_i, n_j = 5, 5
+        grid = np.full((n_i, n_j), ca_fire.EMPTY)
+        expect = np.full((n_i, n_j), ca_fire.EMPTY)
+
+        # input: trees across interior, fire in centre cell, edges empty
+        grid[1:4, 1:4] = ca_fire.TREES
         grid[2, 2] = ca_fire.FIRE
-        expect[grid.interior] = ca_fire.TREES
+
+        # expected result: centre empty, fire across interior, edges empty
         expect[1:4, 1:4] = ca_fire.FIRE
         expect[2, 2] = ca_fire.EMPTY
-        grid = ca_fire.update_forest(grid, _grid_false, _grid_false)
-        self.assertTrue(np.all(grid[:, :] == expect[:, :]))
 
+        #apply rules to grid
+        grid = ca_fire.update_forest(grid, 0, 0)
+
+        #cehck all elements of grid and expect have the same values
+        self.assertTrue(np.all(grid == expect))
 
 
 if __name__ == '__main__':
