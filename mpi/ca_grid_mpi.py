@@ -6,7 +6,7 @@ Created on Tue Sep 20 2022
 @author: stephen cornford (s.l.cornford@bristol.ac.uk)
 
 """
-
+import sys
 import numpy as np
 from mpi4py import MPI
 
@@ -84,7 +84,7 @@ class CAGrid:
             grid_shape, self._rank, self._size, halo=self._halo)
 
         print(f'On rank {self._rank}: local_grid_shape == {local_grid_shape}, halo = {self._halo}, global_slice = {self._global_slice}')
-
+        sys.stdout.flush()
         self._grid = np.zeros(local_grid_shape, dtype='int')
         self._interior, self._interior_neighbours = _stencil_slices(local_grid_shape, 9)
 

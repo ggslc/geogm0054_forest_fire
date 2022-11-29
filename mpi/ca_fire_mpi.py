@@ -14,7 +14,7 @@ GEOGM0054 Introduction to Scientific Computing
 @author: stephen cornford (s.l.cornford@bristol.ac.uk)
 
 """
-
+import sys
 import numpy as np
 from xarray import Dataset
 from ca_grid_mpi import CAGrid
@@ -114,7 +114,8 @@ def grid_bernoulli_trial(probability):
 
 
 def evolve_forest(grid_shape, n_time_step,  prob_growth,
-                  prob_new_fire, initial=None):
+                  prob_new_fire, test_cell = False, test_cell_rank = 0,
+                  test_cell_coords = (8,8)):
     """
 
     Create and evolve a forest fire grid, then save the final state
@@ -128,8 +129,11 @@ def evolve_forest(grid_shape, n_time_step,  prob_growth,
 
     prob_growth : float, probability of new growth per cell per unit time
 
-
     prob_new_fire : float, probability of new fire per cell per unit time
+    
+    test_cell : bool, if True, ignite a test cel on every time step
+    test_cell_ranl : MPI rank of test cell
+    test_cell_coords : (int, int) : location of the test cell
 
     Returns
     -------
@@ -140,9 +144,7 @@ def evolve_forest(grid_shape, n_time_step,  prob_growth,
     # allocate storage
     forest_grid = CAGrid(grid_shape)
 
-    if initial:
-        raise ValueError('initial state not (yet) valid in mpi version')
-        #forest_grid[:,:] = initial[:,:]
+
 
 
     area_fire = np.zeros(n_time_step, dtype='int')
@@ -156,13 +158,16 @@ def evolve_forest(grid_shape, n_time_step,  prob_growth,
     
     # time loop
     for step in range(0, n_time_step):
-        # apply CA rules to forest_grid
+        if test_cell and forest_grid._rank == test_cell_rank:
+           forest_grid[test_cell_coords] = FIRE 
+            
+        # apply CA rules to forest_grid 
         forest_grid = update_forest(forest_grid, random_grow, random_ignite)
 
         # calculate & store fire and tree areas
         area_fire[step] = np.sum(np.where(forest_grid[:,:] == FIRE, 1, 0))
         area_trees[step] = np.sum(np.where(forest_grid[:,:] == TREES, 1, 0))
-        # \todo replace the above for a working sum over mpi ranks
+        # TODO replace the above for a working sum over mpi ranks
         #area_fire[step] = forest_grid.mpi_sum(
         #    np.sum(np.where(forest_grid[:,:] == FIRE, 1, 0)))
         # area_trees[step] = forest_grid.mpi_sum(
@@ -170,7 +175,7 @@ def evolve_forest(grid_shape, n_time_step,  prob_growth,
         
         if step % 1000 == 0:
              print (f'On rank {forest_grid._rank}: time step = {step}, area_trees = {area_trees[step]})')
-
+             sys.stdout.flush()
 
     # output final state
     return forest_grid, area_trees, area_fire

@@ -87,7 +87,7 @@ def plot_fire_results(grid, area_trees, area_fire, time_lim = None):
     return fig
 
 if  __name__ == '__main__':
-    plot_fire_results(*read_netcdf('forest_grid_004000.nc'))
+    plot_fire_results(*read_netcdf('forest_grid_nx_960_004000.nc'))
     #plot_fire_results(*read_netcdf('../week8/forest_grid_004000.nc'), time_lim=(0,4000))
 
 #end
