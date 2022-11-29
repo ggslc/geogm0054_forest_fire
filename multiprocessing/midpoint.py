@@ -54,25 +54,24 @@ def midpoint_quad_wrapper(arg):
     return midpoint_quad(*arg)
 
 
-# divide the interval [0, 1] into how many INTERVALS?
-INTERVALS = 40
-# split 
-PARTITIONS = 10
-# check that INTERVALS / PARTITIONS is an integer!
-assert (INTERVALS % PARTITIONS == 0), 'INTERVALS / PARTITIONS not an integer'
+# divide the interval [0, 1] into how many sub domains
+SUB_DOMAINS = 4
+sd_width = 1.0 / SUB_DOMAINS
+# split sub-domians in to how many rectangles?
+RECTANGLES_PER_SUBDOMAIN = 8
 
-partition_size = 1.0/PARTITIONS    
+
 
 # construct the arg list - needs to a list of (f, a, b, n) tuples
 # where f, a, b, n match the arguments of midpoint_quad    
-arg_list = [(circle, a, a + partition_size, int(INTERVALS/PARTITIONS) ) 
-        for a in np.linspace(0, 1 - partition_size, PARTITIONS)]
+arg_list = [(circle, sd * sd_width, (sd + 1) * sd_width, RECTANGLES_PER_SUBDOMAIN ) 
+        for sd in range(0, SUB_DOMAINS)]
 
 if __name__ == '__main__':
 
     print ('estimating pi/4' )
     
-    with Pool(PARTITIONS) as pool:
+    with Pool(SUB_DOMAINS) as pool:
         part = pool.map(midpoint_quad_wrapper, arg_list)
         print (f' contributions: {part}')
         print (f' total: {np.sum(part)} (pi/4 =  {np.pi / 4})' )
