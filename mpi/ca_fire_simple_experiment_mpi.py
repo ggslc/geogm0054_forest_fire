@@ -34,6 +34,6 @@ write_netcdf(f'forest_grid_nx_{GRID_N_X}_{N_TIME_STEP:06d}.nc',
 
 
 # TODO switch to write_netcdf_mpi for the correct result in parallel 
-# write_netcdf_mpi(f'forest_grid_nx_{GRID_N_X}_{N_TIME_STEP:06d}.nc', *result)
+# write_netcdf_mpi(f'forest_grid_nx_{GRID_N_X}_{N_TIME_STEP:06d}.nc', forest_grid, area_trees, area_fire )
 end_time = datetime.datetime.now()
 print(f'On rank {forest_grid._rank} : elapsed time = {(end_time - start_time).seconds} seconds')
