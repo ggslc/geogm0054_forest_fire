@@ -52,6 +52,8 @@ def _stencil_slices(grid_shape, stencil_n=9):
     cell = slice(1, n_i-1), slice(1, n_j-1)
 
     # slice tuples for neighbours
+    # offset = ((0, 1), (0, 1), (1, 0), (-1, 0))
+    
     offset = ((0, 1), (0, -1), (1, 0), (-1, 0))
     if stencil_n == 9:
         offset += ((1, 1), (-1, 1), (1, -1), (-1, -1))
