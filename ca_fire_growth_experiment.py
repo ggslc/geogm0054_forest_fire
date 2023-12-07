@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Oct  4 20:35:51 2022
+Created on Thur Dec 07 2023 12:38 
 
-@author: steph
+@author: Killaspy_S
 """
 from ca_fire import evolve_forest, write_netcdf
 
